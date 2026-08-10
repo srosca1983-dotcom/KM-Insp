@@ -19,7 +19,10 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 export default function App() {
   const [db, setDb] = useState<AppDatabase>(initialDatabase);
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
-  const [activeUser, setActiveUser] = useState<NetworkUser>(PRESET_USERS[1]); // Default Chief Mate
+  const [activeUser, setActiveUser] = useState<NetworkUser | null>(() => {
+    const saved = localStorage.getItem('kilo_moana_active_user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [usersModalOpen, setUsersModalOpen] = useState<boolean>(false);
   const [mobileModalOpen, setMobileModalOpen] = useState<boolean>(false);
@@ -32,8 +35,18 @@ export default function App() {
     try {
       const data = await api.getDb();
       setDb(data);
+      
+      // If no active user is set (first time load), pick the first user from the server's database
+      if (!localStorage.getItem('kilo_moana_active_user') && data.connectedUsers && data.connectedUsers.length > 0) {
+        setActiveUser(data.connectedUsers[1] || data.connectedUsers[0]);
+      } else if (!localStorage.getItem('kilo_moana_active_user')) {
+        setActiveUser(PRESET_USERS[1]);
+      }
     } catch (e) {
       console.warn("Could not fetch DB from server, using local fallback state", e);
+      if (!localStorage.getItem('kilo_moana_active_user')) {
+        setActiveUser(PRESET_USERS[1]);
+      }
     } finally {
       setLoading(false);
     }
@@ -42,6 +55,13 @@ export default function App() {
   useEffect(() => {
     fetchDb();
   }, [fetchDb]);
+
+  // Save active user to local storage
+  useEffect(() => {
+    if (activeUser) {
+      localStorage.setItem('kilo_moana_active_user', JSON.stringify(activeUser));
+    }
+  }, [activeUser]);
 
   // Connect to Real-time Server-Sent Events (SSE) for Network Sync
   useEffect(() => {
@@ -83,6 +103,7 @@ export default function App() {
 
   // Heartbeat Presence to Server
   useEffect(() => {
+    if (!activeUser) return;
     const userPayload: NetworkUser = {
       ...activeUser,
       currentSheet: activeTab,
@@ -112,7 +133,7 @@ export default function App() {
     });
 
     try {
-      await api.updateSheetItems(sheetId, items, activeUser.name);
+      await api.updateSheetItems(sheetId, items, activeUser?.name || 'Unknown User');
     } catch (e) {
       console.error(e);
     }
@@ -121,7 +142,7 @@ export default function App() {
   // Sheet Signoff
   const handleSignoffSheet = async (sheetId: string, signoff: InspectionSignoff) => {
     try {
-      const res = await api.signoffSheet(sheetId, signoff, activeUser.name);
+      const res = await api.signoffSheet(sheetId, signoff, activeUser?.name || 'Unknown User');
       if (res.sheet) {
         fetchDb();
       }
@@ -182,13 +203,13 @@ export default function App() {
       deficiency: partialDef.deficiency || 'Deficiency noted during visual inspection',
       priority: 'Medium',
       workOrder: `WO-${Math.floor(88000 + Math.random() * 1000)}`,
-      assignedTo: `${activeUser.role}`,
+      assignedTo: `${activeUser?.role || 'Crew'}`,
       dueDate: new Date(Date.now() + 14 * 86400000).toISOString().substring(0, 10),
       dateCorrected: '',
       verifiedBy: '',
       status: 'Open',
       notes: 'Auto-flagged from inspection sheet check',
-      initials: activeUser.name.split(' ').map(n => n[0]).join(''),
+      initials: activeUser?.name?.split(' ').map(n => n[0]).join('') || 'U',
     };
 
     handleSaveDeficiency(newDef);
@@ -205,6 +226,14 @@ export default function App() {
 
   // Determine if active tab is one of the 16 sheets
   const activeSheet = db.sheets[activeTab as InspectionId];
+
+  if (!activeUser) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
@@ -306,6 +335,29 @@ export default function App() {
         <NetworkUsersModal
           users={db.connectedUsers || []}
           activeUser={activeUser}
+          onSelectUser={setActiveUser}
+          onUpdateUser={async (updatedUser) => {
+            if (activeUser.id === updatedUser.id) {
+              setActiveUser(updatedUser);
+            } else {
+              // Edit another user on the network
+              try {
+                await api.sendPresence(updatedUser);
+                fetchDb();
+              } catch (e) {
+                console.error(e);
+              }
+            }
+          }}
+          onAddUser={async (newUser) => {
+            setActiveUser(newUser);
+            try {
+              await api.sendPresence(newUser);
+              fetchDb();
+            } catch (e) {
+              console.error(e);
+            }
+          }}
           onClose={() => setUsersModalOpen(false)}
         />
       )}

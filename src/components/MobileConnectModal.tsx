@@ -7,7 +7,13 @@ interface MobileConnectModalProps {
 
 export const MobileConnectModal: React.FC<MobileConnectModalProps> = ({ onClose }) => {
   const [copied, setCopied] = useState(false);
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : 'http://localhost:3000';
+  let currentUrl = typeof window !== 'undefined' ? window.location.href : 'http://10.0.161.47:3000';
+
+  // If the user is viewing the app on the host machine via localhost,
+  // replace localhost with the ship's network IP so the QR code works for mobile devices.
+  if (currentUrl.includes('localhost') || currentUrl.includes('127.0.0.1')) {
+    currentUrl = currentUrl.replace('localhost', '10.0.161.47').replace('127.0.0.1', '10.0.161.47');
+  }
 
   const handleCopy = () => {
     navigator.clipboard.writeText(currentUrl);
