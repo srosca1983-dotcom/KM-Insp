@@ -220,6 +220,13 @@ export const DeficiencyLogView: React.FC<DeficiencyLogViewProps> = ({
                     <td className="py-3.5 px-5 text-slate-800 max-w-sm font-medium">
                       {d.deficiency}
                       {d.notes && <div className="text-[10px] text-slate-500 italic mt-0.5">{d.notes}</div>}
+                      {d.photoUrl && (
+                        <div className="mt-2">
+                          <a href={d.photoUrl} target="_blank" rel="noreferrer" className="inline-block border border-slate-300 p-0.5 rounded-lg bg-white overflow-hidden shadow-sm hover:shadow-md transition">
+                            <img src={d.photoUrl} alt="Deficiency" className="h-16 w-auto object-cover rounded-md" />
+                          </a>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3.5 px-3">
                       <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black ${

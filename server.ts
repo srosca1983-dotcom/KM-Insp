@@ -331,14 +331,26 @@ app.post("/api/users/presence", (req: Request, res: Response) => {
 
   user.lastActive = "Just now";
   const existingIdx = db.connectedUsers.findIndex(u => u.id === user.id);
+  
+  let changed = false;
   if (existingIdx !== -1) {
-    db.connectedUsers[existingIdx] = user;
+    const existing = db.connectedUsers[existingIdx];
+    if (existing.currentSheet !== user.currentSheet || existing.role !== user.role || existing.name !== user.name) {
+      db.connectedUsers[existingIdx] = user;
+      changed = true;
+    } else {
+      // Just update the timestamp quietly without broadcasting
+      db.connectedUsers[existingIdx].lastActive = "Just now";
+    }
   } else {
     db.connectedUsers.push(user);
+    changed = true;
   }
 
   // Cleanup inactive users older than 5 minutes if any
-  broadcastChange("USER_PRESENCE", { users: db.connectedUsers });
+  if (changed) {
+    broadcastChange("USER_PRESENCE", { users: db.connectedUsers });
+  }
   res.json({ users: db.connectedUsers });
 });
 
@@ -403,7 +415,8 @@ Provide a concise, professional maritime recommendation in JSON format with keys
 
 // --- VITE / STATIC SERVING ---
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+  const isDev = process.env.NODE_ENV !== "production" && !(process.argv[1] && process.argv[1].endsWith("server.cjs"));
+  if (isDev) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

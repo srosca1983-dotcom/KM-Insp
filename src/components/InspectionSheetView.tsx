@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Check, X, AlertTriangle, CheckCircle2, ShieldCheck, Printer, Save, 
-  FileText, UserCheck, Calendar, Clock, ArrowLeft, RefreshCw, Anchor
+  FileText, UserCheck, Calendar, Clock, ArrowLeft, RefreshCw, Anchor, Camera
 } from 'lucide-react';
 import { InspectionSheetData, InspectionItem, DeficiencyItem, InspectionSignoff, SatUnsat, NetworkUser } from '../types';
 
@@ -35,6 +35,30 @@ export const InspectionSheetView: React.FC<InspectionSheetViewProps> = ({
 
   const [saving, setSaving] = useState(false);
   const [signoffSuccess, setSignoffSuccess] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingPhotoItem, setPendingPhotoItem] = useState<InspectionItem | null>(null);
+
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && pendingPhotoItem) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        onFlagDeficiency({
+          inspectionId: sheet.id,
+          inspectionTitle: sheet.title,
+          deficiency: `Deficiency noted on ${pendingPhotoItem.name}: ${pendingPhotoItem.comments || pendingPhotoItem.criteria}`,
+          photoUrl: base64String
+        });
+        setPendingPhotoItem(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Update item field helper
   const handleItemChange = (id: string, field: keyof InspectionItem, value: any) => {
@@ -85,6 +109,14 @@ export const InspectionSheetView: React.FC<InspectionSheetViewProps> = ({
 
   return (
     <div className="space-y-6">
+      <input 
+        type="file" 
+        accept="image/*" 
+        capture="environment" 
+        ref={fileInputRef} 
+        className="hidden" 
+        onChange={handlePhotoCapture} 
+      />
       {/* Official Printable Header (Visible only when printed) */}
       <div className="hidden print:block border-b-2 border-black pb-4 mb-4 text-black">
         <div className="flex justify-between items-start">
@@ -390,18 +422,31 @@ export const InspectionSheetView: React.FC<InspectionSheetViewProps> = ({
 
                     {/* Flag Deficiency Button */}
                     <td className="py-2.5 px-2 text-center print:hidden">
-                      <button
-                        type="button"
-                        onClick={() => onFlagDeficiency({
-                          inspectionId: sheet.id,
-                          inspectionTitle: sheet.title,
-                          deficiency: `Deficiency noted on ${item.name}: ${item.comments || item.criteria}`,
-                        })}
-                        className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition"
-                        title="Flag discrepancy to Deficiency Log"
-                      >
-                        <AlertTriangle className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onFlagDeficiency({
+                            inspectionId: sheet.id,
+                            inspectionTitle: sheet.title,
+                            deficiency: `Deficiency noted on ${item.name}: ${item.comments || item.criteria}`,
+                          })}
+                          className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition"
+                          title="Flag discrepancy to Deficiency Log"
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPendingPhotoItem(item);
+                            fileInputRef.current?.click();
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition"
+                          title="Add Photo & Flag Deficiency"
+                        >
+                          <Camera className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

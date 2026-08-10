@@ -96,6 +96,7 @@ export interface DeficiencyItem {
   status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
   notes: string;
   initials: string;
+  photoUrl?: string;
 }
 
 export interface InspectionSignoff {
@@ -161,6 +162,7 @@ export interface NetworkUser {
   device: string;
   currentSheet: string;
   lastActive: string;
+  pin?: string;
 }
 
 export interface AppDatabase {
