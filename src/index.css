@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@media print {
+  /* Hide non-printable app elements */
+  header,
+  footer,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 11px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .bg-slate-950,
+  .bg-slate-900,
+  .bg-slate-800 {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 6px 8px !important;
+    color: black !important;
+  }
+
+  input, select, textarea {
+    border: none !important;
+    background: transparent !important;
+    appearance: none !important;
+    font-weight: bold !important;
+    padding: 0 !important;
+  }
+
+  .shadow-sm, .shadow-md, .shadow-lg, .shadow-2xl {
+    box-shadow: none !important;
+  }
+
+  .border {
+    border-color: #000 !important;
+  }
+}

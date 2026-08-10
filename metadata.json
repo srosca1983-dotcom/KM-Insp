@@ -1,0 +1,6 @@
+{
+  "name": "Kilo Moana Safety Compliance & Inspection System",
+  "description": "Multi-user network application for R/V Kilo Moana maritime safety compliance, master inspection calendar, deficiency logs, certificate register, and monthly safety binder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
